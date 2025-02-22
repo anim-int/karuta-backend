@@ -4,7 +4,7 @@ use rocket::{fs::NamedFile, State};
 use rocket_okapi::openapi;
 use std::{path::Path, sync::Arc};
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Deck {
     pub name: String,
     pub category: String,
@@ -14,7 +14,7 @@ pub struct Deck {
     pub cards: Vec<Card>,
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Card {
     pub anime: String,
     #[serde(rename = "type")]

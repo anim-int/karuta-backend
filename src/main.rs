@@ -1,23 +1,25 @@
 #[macro_use]
 extern crate rocket;
 
+mod categories;
+mod cors;
 mod deck;
-use deck::*;
-
+mod game;
 mod theme;
+
+use categories::*;
+use deck::*;
+use game::*;
+use index::GameIndex;
 use theme::*;
 
-mod categories;
-use categories::*;
-
-mod cors;
 use cors::*;
 
 use rocket_okapi::{
     openapi_get_routes,
     swagger_ui::{make_swagger_ui, SwaggerUIConfig},
 };
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 #[launch]
 fn rocket() -> _ {
@@ -31,6 +33,11 @@ fn rocket() -> _ {
     let categories: CategoryJSON =
         serde_json::from_reader(std::fs::File::open("decks/Categories/Categories.json").unwrap())
             .unwrap();
+
+    let game_index = GameIndex::new(GameConfig {
+        has_ffa: true,
+        duplicate_policy: DuplicatePolicy::MatchMusic,
+    });
 
     rocket::build()
         .attach(CORS)
@@ -59,6 +66,7 @@ fn rocket() -> _ {
         )
         .manage(Arc::new(decks))
         .manage(Arc::new(categories))
+        .manage(Arc::new(RwLock::new(game_index)))
 }
 
 #[cfg(test)]

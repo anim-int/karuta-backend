@@ -4,98 +4,20 @@ extern crate rocket;
 mod deck;
 use deck::*;
 
+mod theme;
+use theme::*;
+
+mod categories;
+use categories::*;
+
 mod cors;
 use cors::*;
 
-use rocket::{fs::NamedFile, State};
-use rocket_okapi::{openapi, openapi_get_routes, swagger_ui::{make_swagger_ui, SwaggerUIConfig}};
-use std::{path::Path, sync::Arc};
-
-#[openapi(tag = "Decks")]
-#[get("/deck/metadata/<name>")]
-async fn deck_metadata(decks: &State<Arc<Vec<Deck>>>, name: &str) -> Option<String> {
-    serde_json::to_string(decks.iter().find(|deck| deck.name == name)?).ok()
-}
-
-#[openapi(tag = "Decks")]
-#[get("/deck/names")]
-fn deck_names(decks: &State<Arc<Vec<Deck>>>) -> String {
-    decks.iter().map(|deck| deck.name.clone() + "\n").collect()
-}
-
-#[openapi(tag = "Decks")]
-#[get("/visual/<name>")]
-async fn get_visual(name: &str) -> Option<NamedFile> {
-    NamedFile::open(Path::new(&format!("decks/Visuals/{name}")))
-        .await
-        .ok()
-}
-
-#[openapi(tag = "Decks")]
-#[get("/sound/<name>")]
-async fn get_sound(name: &str) -> Option<NamedFile> {
-    NamedFile::open(Path::new(&format!("decks/Sounds/{name}")))
-        .await
-        .ok()
-}
-
-#[openapi(tag = "Decks")]
-#[get("/deck/cover/<name>")]
-async fn get_cover(name: &str) -> Option<NamedFile> {
-    NamedFile::open(Path::new(&format!("decks/Covers/{name}")))
-        .await
-        .ok()
-}
-
-#[openapi(tag = "Themes")]
-#[get("/theme/names")]
-fn theme_names() -> String {
-    std::fs::read_dir("decks/Themes")
-        .unwrap()
-        .map(|rd| rd.unwrap().file_name().into_string().unwrap())
-        .filter(|filename| filename.contains(".json"))
-        .map(|s| s + "\n")
-        .collect()
-}
-
-#[openapi(tag = "Themes")]
-#[get("/theme/<name>")]
-async fn get_theme(name: &str) -> Option<NamedFile> {
-    NamedFile::open(Path::new(&format!("decks/Themes/{name}")))
-        .await
-        .ok()
-}
-
-#[openapi(tag = "Categories")]
-#[get("/categories")]
-async fn get_categories(categories: &State<Arc<CategoryJSON>>) -> Option<String> {
-    serde_json::to_string(&categories.categories).ok()
-}
-
-#[openapi(tag = "Categories")]
-#[get("/types")]
-async fn get_types(categories: &State<Arc<CategoryJSON>>) -> Option<String> {
-    serde_json::to_string(&categories.types).ok()
-}
-
-#[openapi(tag = "Categories")]
-#[get("/categories_and_types")]
-async fn get_categories_and_types(categories: &State<Arc<CategoryJSON>>) -> Option<String> {
-    serde_json::to_string(categories.inner().as_ref()).ok()
-}
-
-#[openapi(tag = "Categories")]
-#[get("/category/icon/<name>")]
-async fn get_category_icon(name: &str, categories: &State<Arc<CategoryJSON>>) -> Option<NamedFile> {
-    let icon_path = &categories
-        .categories
-        .iter()
-        .find(|category| category.name == name)?
-        .icon;
-    NamedFile::open(Path::new(&format!("decks/Categories/{icon_path}")))
-        .await
-        .ok()
-}
+use rocket_okapi::{
+    openapi_get_routes,
+    swagger_ui::{make_swagger_ui, SwaggerUIConfig},
+};
+use std::sync::Arc;
 
 #[launch]
 fn rocket() -> _ {

@@ -1,7 +1,7 @@
-use crate::state::CardGuessResult;
+use crate::*;
 
 use crate::deck::*;
-use crate::*;
+use crate::state::CardGuessResult;
 
 fn create_sample_cards() -> Vec<Card> {
     vec![
@@ -44,11 +44,11 @@ fn create_game() {
     let game_id = game_index.create_game(vec![vec![cards[0].clone()]]);
 
     let game = game_index.get_game(&game_id).unwrap();
-    assert_eq!(game.get_state().len(), 1);
+    assert_eq!(game.get_boards().len(), 1);
 }
 
 #[test]
-fn create_game_and_play() {
+fn create_simple_game_and_play() {
     let cards = create_sample_cards();
 
     let mut game_index = GameIndex::new(GameConfig {
@@ -56,11 +56,50 @@ fn create_game_and_play() {
         duplicate_policy: DuplicatePolicy::MatchMusic,
     });
 
-    let game_id = game_index.create_game(vec![vec![cards[0].clone()]]);
+    let game_id = game_index.create_game(vec![vec![cards[0].clone()], vec![cards[0].clone()]]);
 
     let game = game_index.get_game_mut(&game_id).unwrap();
     game.play_card().unwrap();
-    assert_eq!(game.get_current_card_playing().unwrap(), &cards[0])
+
+    assert_eq!(game.get_current_card_playing().unwrap(), &cards[0]);
+
+    assert_eq!(
+        game.guess_card(cards[0].clone()).unwrap(),
+        CardGuessResult::Correct(state::GameContinuation::End),
+    );
+
+    assert!(game.has_game_ended());
+}
+
+#[test]
+fn create_game_with_ffa_and_play() {
+    let cards = create_sample_cards();
+
+    let mut game_index = GameIndex::new(GameConfig {
+        has_ffa: true,
+        duplicate_policy: DuplicatePolicy::MatchMusic,
+    });
+
+    let game_id = game_index.create_game(vec![vec![cards[0].clone()], vec![cards[0].clone()]]);
+
+    let game = game_index.get_game_mut(&game_id).unwrap();
+    game.play_card().unwrap();
+
+    assert_eq!(game.get_current_card_playing().unwrap(), &cards[0]);
+
+    assert_eq!(
+        game.guess_card(cards[0].clone()).unwrap(),
+        CardGuessResult::Correct(state::GameContinuation::Ffa),
+    );
+
+    game.play_card().unwrap();
+
+    assert_eq!(
+        game.guess_card(cards[0].clone()).unwrap(),
+        CardGuessResult::Correct(state::GameContinuation::End),
+    );
+
+    assert!(game.has_game_ended());
 }
 
 #[test]

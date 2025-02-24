@@ -4,35 +4,37 @@ use super::Card;
 use super::DuplicatePolicy;
 use super::GameConfig;
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum GameContinuation {
     Continue,
     Ffa,
     End,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum CardGuessResult {
     Correct(GameContinuation),
     Incorrect,
 }
 
 /// This struct represents the state of a game.
-/// The state field contains the current boards of each player, represented by a list of their cards.
-/// The current_card_playing field contains the index of the current card being searched.
+/// The `boards` field contains the current boards of each player, represented by a list of their cards.
+/// The `current_card_playing` field contains the index of the current card being searched.
 #[derive(Debug, Clone)]
 pub struct GameState {
     config: GameConfig,
-    state: Vec<Vec<Card>>,
+    boards: Vec<Vec<Card>>,
     current_card_playing: Option<(usize, usize)>,
+    game_continuation: GameContinuation,
 }
 
 impl GameState {
     pub fn new(config: GameConfig, decks: Vec<Vec<Card>>) -> Self {
         GameState {
             config,
-            state: decks,
+            boards: decks,
             current_card_playing: None,
+            game_continuation: GameContinuation::Continue,
         }
     }
 
@@ -40,31 +42,45 @@ impl GameState {
         &self.config
     }
 
-    pub fn get_state(&self) -> &Vec<Vec<Card>> {
-        &self.state
+    pub fn get_boards(&self) -> &Vec<Vec<Card>> {
+        &self.boards
+    }
+
+    pub fn get_boards_mut(&mut self) -> &mut Vec<Vec<Card>> {
+        &mut self.boards
     }
 
     pub fn get_player_board(&self, player_index: usize) -> Option<&Vec<Card>> {
-        self.state.get(player_index)
+        self.boards.get(player_index)
     }
 
     pub fn get_player_board_mut(&mut self, player_index: usize) -> Option<&mut Vec<Card>> {
-        self.state.get_mut(player_index)
+        self.boards.get_mut(player_index)
     }
 
     pub fn get_current_card_playing(&self) -> Option<&Card> {
         let (player_index, card_index) = self.current_card_playing?;
-        self.state.get(player_index)?.get(card_index)
+        self.boards.get(player_index)?.get(card_index)
+    }
+
+    pub fn get_game_continuation(&self) -> &GameContinuation {
+        &self.game_continuation
+    }
+
+    pub fn has_game_ended(&self) -> bool {
+        self.game_continuation == GameContinuation::End
     }
 
     /// Choose a card to become the current card being searched.
     pub fn play_card(&mut self) -> Result<(), &str> {
         if self.current_card_playing.is_some() {
             Err("Card already being played")
+        } else if self.game_continuation == GameContinuation::End {
+            Err("Game already ended")
         } else {
             // Pick a random card from the board
-            let player_index = rand::rng().random_range(0..self.state.len());
-            let player_board = &self.state[player_index];
+            let player_index = rand::rng().random_range(0..self.boards.len());
+            let player_board = &self.boards[player_index];
             let card_index = rand::rng().random_range(0..player_board.len());
             self.current_card_playing = Some((player_index, card_index));
             Ok(())
@@ -86,26 +102,32 @@ impl GameState {
                 DuplicatePolicy::MatchCard => card == &card_guess,
             };
             if result {
-                self.guess_correctly()
+                Ok(CardGuessResult::Correct((self.guess_correctly())?))
             } else {
                 Ok(CardGuessResult::Incorrect)
             }
         }
     }
 
-    fn guess_correctly(&mut self) -> Result<CardGuessResult, &str> {
+    fn guess_correctly(&mut self) -> Result<GameContinuation, &str> {
         let (player_index, card_index) = self.current_card_playing.unwrap();
-        self.state[player_index].remove(card_index);
+        self.boards[player_index].remove(card_index);
         self.current_card_playing = None;
-        if self.state[player_index].is_empty() {
-            self.state.remove(player_index);
-            Ok(CardGuessResult::Correct(if self.config.has_ffa {
-                GameContinuation::Ffa
+        self.game_continuation = if self.boards[player_index].is_empty() {
+            self.boards.remove(player_index);
+            if self.config.has_ffa {
+                for board in &self.boards {
+                    if !board.is_empty() {
+                        return Ok(GameContinuation::Ffa);
+                    }
+                }
+                GameContinuation::End
             } else {
                 GameContinuation::End
-            }))
+            }
         } else {
-            Ok(CardGuessResult::Correct(GameContinuation::Continue))
-        }
+            GameContinuation::Continue
+        };
+        Ok(self.game_continuation)
     }
 }

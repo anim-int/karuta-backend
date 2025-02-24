@@ -21,6 +21,11 @@ use rocket_okapi::{
 };
 use std::sync::{Arc, RwLock};
 
+const DEFAULT_CONFIG: GameConfig = GameConfig {
+    has_ffa: true,
+    duplicate_policy: DuplicatePolicy::MatchMusic,
+};
+
 #[launch]
 fn rocket() -> _ {
     let decks = std::fs::read_dir("decks/Decks")
@@ -34,10 +39,7 @@ fn rocket() -> _ {
         serde_json::from_reader(std::fs::File::open("decks/Categories/Categories.json").unwrap())
             .unwrap();
 
-    let game_index = GameIndex::new(GameConfig {
-        has_ffa: true,
-        duplicate_policy: DuplicatePolicy::MatchMusic,
-    });
+    let game_index = GameIndex::new(DEFAULT_CONFIG);
 
     rocket::build()
         .attach(CORS)

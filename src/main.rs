@@ -57,6 +57,8 @@ fn rocket() -> _ {
                 get_types,
                 get_categories_and_types,
                 get_category_icon,
+                create_game,
+                create_1v1_game,
             ],
         )
         .mount(

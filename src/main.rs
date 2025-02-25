@@ -59,6 +59,13 @@ fn rocket() -> _ {
                 get_category_icon,
                 create_game,
                 create_1v1_game,
+                play_card,
+                guess_card,
+                get_game_config,
+                get_state,
+                get_boards,
+                get_player_board,
+                move_card,
             ],
         )
         .mount(

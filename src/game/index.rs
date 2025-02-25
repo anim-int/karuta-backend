@@ -1,5 +1,8 @@
 use rand::distr::Distribution;
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex, MutexGuard},
+};
 
 use crate::Card;
 
@@ -11,7 +14,7 @@ type GameId = String;
 
 #[derive(Debug, Clone)]
 pub struct GameIndex {
-    index: HashMap<GameId, GameState>,
+    index: HashMap<GameId, Arc<Mutex<GameState>>>,
     default_config: GameConfig,
 }
 
@@ -44,7 +47,10 @@ impl GameIndex {
         let game_id = self.generate_game_id();
         self.index.insert(
             game_id.clone(),
-            GameState::new(self.default_config.clone(), decks),
+            Arc::new(Mutex::new(GameState::new(
+                self.default_config.clone(),
+                decks,
+            ))),
         );
         game_id
     }
@@ -58,23 +64,20 @@ impl GameIndex {
         let game_id = self.generate_game_id();
         let mut config = self.default_config.clone();
         config.apply_override(config_override);
-        self.index
-            .insert(game_id.clone(), GameState::new(config, decks));
+        self.index.insert(
+            game_id.clone(),
+            Arc::new(Mutex::new(GameState::new(config, decks))),
+        );
         game_id
     }
 
     /// Retrieves a game by its ID.
-    pub fn get_game(&self, game_id: &GameId) -> Option<&GameState> {
-        self.index.get(game_id)
-    }
-
-    /// Retrieves a mutable reference to a game by its ID.
-    pub fn get_game_mut(&mut self, game_id: &GameId) -> Option<&mut GameState> {
-        self.index.get_mut(game_id)
+    pub fn get_game(&self, game_id: &GameId) -> Option<MutexGuard<GameState>> {
+        self.index.get(game_id)?.lock().ok()
     }
 
     /// Removes a game by its ID.
-    pub fn remove_game(&mut self, game_id: &GameId) -> Option<GameState> {
-        self.index.remove(game_id)
+    pub fn remove_game(&mut self, game_id: &GameId) {
+        self.index.remove(game_id);
     }
 }

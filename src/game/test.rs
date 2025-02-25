@@ -1,3 +1,4 @@
+#![allow(unused)]
 use crate::*;
 
 use crate::deck::*;
@@ -58,7 +59,7 @@ fn create_simple_game_and_play() {
 
     let game_id = game_index.create_game(vec![vec![cards[0].clone()], vec![cards[0].clone()]]);
 
-    let game = game_index.get_game_mut(&game_id).unwrap();
+    let mut game = game_index.get_game(&game_id).unwrap();
     game.play_card().unwrap();
 
     assert_eq!(game.get_current_card_playing().unwrap(), &cards[0]);
@@ -82,7 +83,7 @@ fn create_game_with_ffa_and_play() {
 
     let game_id = game_index.create_game(vec![vec![cards[0].clone()], vec![cards[0].clone()]]);
 
-    let game = game_index.get_game_mut(&game_id).unwrap();
+    let mut game = game_index.get_game(&game_id).unwrap();
     game.play_card().unwrap();
 
     assert_eq!(game.get_current_card_playing().unwrap(), &cards[0]);
@@ -113,7 +114,7 @@ fn play_game_with_match_anime() {
 
     let game_id = game_index.create_game(vec![vec![cards[0].clone()]]);
 
-    let game = game_index.get_game_mut(&game_id).unwrap();
+    let mut game = game_index.get_game(&game_id).unwrap();
     game.play_card().unwrap();
     assert_eq!(
         game.guess_card(cards[1].clone()).unwrap(),
@@ -136,7 +137,7 @@ fn play_game_with_match_music() {
 
     let game_id = game_index.create_game(vec![vec![cards[0].clone()]]);
 
-    let game = game_index.get_game_mut(&game_id).unwrap();
+    let mut game = game_index.get_game(&game_id).unwrap();
     game.play_card().unwrap();
     assert_eq!(
         game.guess_card(cards[1].clone()).unwrap(),
@@ -163,7 +164,7 @@ fn play_game_with_match_card() {
 
     let game_id = game_index.create_game(vec![vec![cards[0].clone()]]);
 
-    let game = game_index.get_game_mut(&game_id).unwrap();
+    let mut game = game_index.get_game(&game_id).unwrap();
     game.play_card().unwrap();
     assert_eq!(
         game.guess_card(cards[1].clone()).unwrap(),

@@ -1,3 +1,4 @@
+use schemars::JsonSchema;
 use serde;
 
 use rocket::{fs::NamedFile, State};
@@ -14,7 +15,7 @@ pub struct Deck {
     pub cards: Vec<Card>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, JsonSchema)]
 pub struct Card {
     pub anime: String,
     #[serde(rename = "type")]

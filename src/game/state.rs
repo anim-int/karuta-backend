@@ -4,14 +4,14 @@ use super::Card;
 use super::DuplicatePolicy;
 use super::GameConfig;
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, serde::Serialize)]
 pub enum GameContinuation {
     Continue,
     Ffa,
     End,
 }
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, serde::Serialize)]
 pub enum CardGuessResult {
     Correct(GameContinuation),
     Incorrect,
@@ -52,10 +52,6 @@ impl GameState {
 
     pub fn get_player_board(&self, player_index: usize) -> Option<&Vec<Card>> {
         self.boards.get(player_index)
-    }
-
-    pub fn get_player_board_mut(&mut self, player_index: usize) -> Option<&mut Vec<Card>> {
-        self.boards.get_mut(player_index)
     }
 
     pub fn get_current_card_playing(&self) -> Option<&Card> {

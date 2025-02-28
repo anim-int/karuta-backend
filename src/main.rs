@@ -19,6 +19,9 @@ use rocket_okapi::{
     openapi_get_routes,
     swagger_ui::{make_swagger_ui, SwaggerUIConfig},
 };
+
+use reqwest;
+
 use std::sync::{Arc, RwLock};
 
 const DEFAULT_CONFIG: GameConfig = GameConfig {
@@ -28,16 +31,18 @@ const DEFAULT_CONFIG: GameConfig = GameConfig {
 
 #[launch]
 fn rocket() -> _ {
-    let decks = std::fs::read_dir("decks/Decks")
-        .unwrap()
-        .map(|path| {
-            let reader = std::fs::File::open(path.unwrap().path()).unwrap();
-            serde_json::from_reader(reader).unwrap()
+    let deck_index = dbg!(DeckSource::from_gitmodules("decks"));
+    let decks = deck_index
+        .iter()
+        .map(|source| {
+            let response = reqwest::blocking::get(source.get_deck_json_url()).unwrap();
+            response.json::<Deck>().unwrap()
         })
         .collect::<Vec<Deck>>();
-    let categories: CategoryJSON =
-        serde_json::from_reader(std::fs::File::open("decks/Categories/Categories.json").unwrap())
-            .unwrap();
+    let categories: CategoryJSON = CategoryJSON {
+        categories: vec![],
+        types: vec![],
+    };
 
     let game_index = GameIndex::new(DEFAULT_CONFIG);
 
@@ -102,17 +107,24 @@ mod test {
     #[test]
     fn visual_files_integrity() {
         let client = Client::tracked(rocket()).expect("valid rocket instance");
-        let decks = std::fs::read_dir("decks/Decks")
+        let response = client.get(uri!(super::deck_names)).dispatch();
+        let deck_names = response
+            .into_string()
             .unwrap()
-            .map(|path| {
-                let reader = std::fs::File::open(path.unwrap().path()).unwrap();
-                serde_json::from_reader(reader).unwrap()
+            .lines()
+            .map(|line| line.to_string())
+            .collect::<Vec<String>>();
+        let decks = deck_names
+            .iter()
+            .map(|deck_name| {
+                let response = client.get(uri!(super::deck_metadata(deck_name))).dispatch();
+                serde_json::from_str(&response.into_string().unwrap()).unwrap()
             })
             .collect::<Vec<Deck>>();
 
         for deck in decks {
             for card in deck.cards {
-                let response = client.get(uri!(super::get_visual(card.visual))).dispatch();
+                let response = client.get(uri!(super::get_visual(card.image))).dispatch();
                 assert_eq!(response.status(), Status::Ok);
             }
         }
@@ -121,11 +133,18 @@ mod test {
     #[test]
     fn audio_files_integrity() {
         let client = Client::tracked(rocket()).expect("valid rocket instance");
-        let decks = std::fs::read_dir("decks/Decks")
+        let response = client.get(uri!(super::deck_names)).dispatch();
+        let deck_names = response
+            .into_string()
             .unwrap()
-            .map(|path| {
-                let reader = std::fs::File::open(path.unwrap().path()).unwrap();
-                serde_json::from_reader(reader).unwrap()
+            .lines()
+            .map(|line| line.to_string())
+            .collect::<Vec<String>>();
+        let decks = deck_names
+            .iter()
+            .map(|deck_name| {
+                let response = client.get(uri!(super::deck_metadata(deck_name))).dispatch();
+                serde_json::from_str(&response.into_string().unwrap()).unwrap()
             })
             .collect::<Vec<Deck>>();
 

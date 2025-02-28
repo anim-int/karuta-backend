@@ -15,7 +15,10 @@ use state::{CardGuessResult, GameContinuation};
 
 use std::sync::{Arc, RwLock};
 
-use crate::{deck::Card, Deck};
+use crate::{
+    deck::{Card, DeckSource},
+    Deck,
+};
 
 use index::*;
 
@@ -63,13 +66,18 @@ fn serialize_to_raw_json(obj: &impl serde::Serialize) -> content::RawJson<String
 #[post("/game/create", format = "json", data = "<game_data>")]
 pub fn create_game(
     game_index: &State<Arc<RwLock<GameIndex>>>,
-    decks: &State<Arc<Vec<Deck>>>,
+    decks: &State<Arc<Vec<(DeckSource, Deck)>>>,
     game_data: Json<GameData>,
 ) -> status::Custom<content::RawText<String>> {
     let decks = game_data
         .deck_names
         .iter()
-        .map(|name| decks.iter().find(|deck| &deck.name == name))
+        .map(|name| {
+            decks
+                .iter()
+                .find(|(_, deck)| &deck.name == name)
+                .map(|(_, deck)| deck)
+        })
         .collect::<Vec<Option<&Deck>>>();
 
     for deck in decks.iter() {
@@ -100,12 +108,18 @@ pub fn create_game(
 #[post("/game/create1v1/<d1>/<d2>")]
 pub fn create_1v1_game(
     game_index: &State<Arc<RwLock<GameIndex>>>,
-    decks: &State<Arc<Vec<Deck>>>,
+    decks: &State<Arc<Vec<(DeckSource, Deck)>>>,
     d1: String,
     d2: String,
 ) -> status::Custom<content::RawText<String>> {
-    let deck1 = decks.iter().find(|deck| deck.name == d1);
-    let deck2 = decks.iter().find(|deck| deck.name == d2);
+    let deck1 = decks
+        .iter()
+        .find(|(_, deck)| deck.name == d1)
+        .map(|(_, deck)| deck);
+    let deck2 = decks
+        .iter()
+        .find(|(_, deck)| deck.name == d2)
+        .map(|(_, deck)| deck);
 
     if let (Some(deck1), Some(deck2)) = (deck1, deck2) {
         let game_id = game_index

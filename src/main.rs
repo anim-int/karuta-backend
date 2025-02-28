@@ -46,6 +46,8 @@ fn rocket() -> _ {
 
     let game_index = GameIndex::new(DEFAULT_CONFIG);
 
+    // TODO : Clone decks index, probably using config file
+
     rocket::build()
         .attach(CORS)
         .mount(
@@ -154,6 +156,34 @@ mod test {
             for card in deck.cards {
                 let response = client
                     .get(uri!(super::get_sound(deck.name.clone(), card.id)))
+                    .dispatch();
+                assert_eq!(response.status(), Status { code: 302 });
+            }
+        }
+    }
+
+    #[test]
+    fn cover_files_integrity() {
+        let client = Client::tracked(rocket()).expect("valid rocket instance");
+        let response = client.get(uri!(super::deck_names)).dispatch();
+        let deck_names = response
+            .into_string()
+            .unwrap()
+            .lines()
+            .map(|line| line.to_string())
+            .collect::<Vec<String>>();
+        let decks = deck_names
+            .iter()
+            .map(|deck_name| {
+                let response = client.get(uri!(super::deck_metadata(deck_name))).dispatch();
+                serde_json::from_str(&response.into_string().unwrap()).unwrap()
+            })
+            .collect::<Vec<Deck>>();
+
+        for deck in decks {
+            for card in deck.cards {
+                let response = client
+                    .get(uri!(super::get_cover(deck.name.clone())))
                     .dispatch();
                 assert_eq!(response.status(), Status { code: 302 });
             }

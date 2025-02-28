@@ -1,7 +1,7 @@
 use schemars::JsonSchema;
 use serde;
 
-use rocket::{fs::NamedFile, http::Status, response::Redirect, serde::json::Json, State};
+use rocket::{response::Redirect, serde::json::Json, State};
 use rocket_okapi::openapi;
 use std::{path::Path, sync::Arc};
 
@@ -90,6 +90,10 @@ impl DeckSource {
     pub fn get_sound_url(&self, image_name: &str) -> String {
         self.get_file_url(format!("Sounds/{}", image_name))
     }
+
+    pub fn get_deck_cover_url(&self) -> String {
+        self.get_file_url("cover.png")
+    }
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, JsonSchema)]
@@ -115,14 +119,14 @@ pub struct Card {
 }
 
 #[openapi(tag = "Decks")]
-#[get("/deck/metadata/<name>")]
+#[get("/deck/<deck_name>/metadata")]
 pub async fn deck_metadata(
     decks: &State<Arc<Vec<(DeckSource, Deck)>>>,
-    name: &str,
+    deck_name: &str,
 ) -> Option<Json<Deck>> {
     decks
         .iter()
-        .find(|(_, deck)| deck.name == name)
+        .find(|(_, deck)| deck.name == deck_name)
         .map(|(_, deck)| Json(deck.clone()))
 }
 
@@ -160,9 +164,11 @@ pub async fn get_sound(
 }
 
 #[openapi(tag = "Decks")]
-#[get("/deck/cover/<name>")]
-pub async fn get_cover(name: &str) -> Option<NamedFile> {
-    NamedFile::open(Path::new(&format!("decks/Covers/{name}")))
-        .await
-        .ok()
+#[get("/deck/<deck_name>/cover")]
+pub async fn get_cover(
+    decks: &State<Arc<Vec<(DeckSource, Deck)>>>,
+    deck_name: &str,
+) -> Option<Redirect> {
+    let (source, _) = decks.iter().find(|(_, deck)| deck.name == deck_name)?;
+    Some(Redirect::found(source.get_deck_cover_url()))
 }

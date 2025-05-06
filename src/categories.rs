@@ -14,18 +14,21 @@ pub struct CategoryJSON {
     pub types: Vec<String>,
 }
 
+/// Returns a list of all the known categories in json format
 #[openapi(tag = "Categories")]
 #[get("/categories")]
 pub async fn get_categories(categories: &State<Arc<CategoryJSON>>) -> Option<String> {
     serde_json::to_string(&categories.categories).ok()
 }
 
+/// Returns a list of all the known types in json format
 #[openapi(tag = "Categories")]
 #[get("/types")]
 pub async fn get_types(categories: &State<Arc<CategoryJSON>>) -> Option<String> {
     serde_json::to_string(&categories.types).ok()
 }
 
+/// Returns a list of all the known categories and types in json format
 #[openapi(tag = "Categories")]
 #[get("/categories_and_types")]
 pub async fn get_categories_and_types(categories: &State<Arc<CategoryJSON>>) -> Option<String> {

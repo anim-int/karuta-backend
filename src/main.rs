@@ -36,6 +36,7 @@ const DEFAULT_CONFIG: GameConfig = GameConfig {
 #[launch]
 fn rocket() -> _ {
     let global_config = load_global_config();
+    // Load every deck indexes as GitSources using the links in the config and clone them locally
     let deck_indexes_source_index = global_config
         .sources
         .iter()
@@ -45,6 +46,7 @@ fn rocket() -> _ {
             source
         })
         .collect::<Vec<GitSource>>();
+    // Load decks from submodules of deck indexes
     let deck_source_index = deck_indexes_source_index
         .iter()
         .map(|source| {
@@ -70,8 +72,6 @@ fn rocket() -> _ {
     };
 
     let game_index = GameIndex::new(DEFAULT_CONFIG);
-
-    // TODO : Clone decks index, probably using config file
 
     rocket::build()
         .attach(CORS)

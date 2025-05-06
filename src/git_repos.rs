@@ -1,5 +1,11 @@
 use std::path::Path;
 
+/// Container struct handling content stored on a git forge
+/// 
+/// This currently supports :
+/// - GitHub
+/// - GitLab
+/// - Sourcehut
 #[derive(Debug, Clone)]
 pub enum GitSource {
     GitHub { user: String, repo: String },
@@ -8,6 +14,7 @@ pub enum GitSource {
 }
 
 impl GitSource {
+    /// Creates a new GitSource from a given url
     pub fn parse_url(url: &str) -> Option<GitSource> {
         if url.starts_with("https://github.com/") {
             let parts: Vec<&str> = url.split('/').collect();
@@ -32,6 +39,7 @@ impl GitSource {
         }
     }
 
+    /// Extracts submodules from a local git repo
     pub fn from_gitmodules<P>(directory: P) -> Vec<Self>
     where
         P: AsRef<Path>,
@@ -44,6 +52,9 @@ impl GitSource {
             .collect()
     }
 
+    /// Returns the url to a file given its path in the repo
+    /// 
+    /// This uses the raw file links from the forges
     pub fn get_file_url<S>(&self, path: S) -> String
     where
         S: ToString,
@@ -75,6 +86,9 @@ impl GitSource {
         .replace(" ", "%20")
     }
 
+    /// Clones the repo locally in an optionally given directory, defaults to current working directory
+    /// 
+    /// The repo is cloned to `directory/[user]_[repo]`
     pub fn clone_to_local<P>(&self, directory: Option<P>)
     where
         P: AsRef<Path>,

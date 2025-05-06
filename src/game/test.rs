@@ -9,7 +9,7 @@ fn create_sample_cards() -> Vec<Card> {
         Card {
             id: 0,
             anime: "Sample Anime 1".to_string(),
-            number: "OP".to_string(),
+            numbering: "OP".to_string(),
             image: "Sample Visual 1".to_string(),
             audio: "Sample Audio 1".to_string(),
             title: "Sample Title 1".to_string(),
@@ -19,7 +19,7 @@ fn create_sample_cards() -> Vec<Card> {
         Card {
             id: 1,
             anime: "Sample Anime 2".to_string(),
-            number: "OP".to_string(),
+            numbering: "OP".to_string(),
             image: "Sample Visual 2".to_string(),
             audio: "Sample Audio 2".to_string(),
             title: "Sample Title 2".to_string(),
@@ -29,7 +29,7 @@ fn create_sample_cards() -> Vec<Card> {
         Card {
             id: 2,
             anime: "Sample Anime 1".to_string(),
-            number: "ED".to_string(),
+            numbering: "ED".to_string(),
             image: "Sample Visual 3".to_string(),
             audio: "Sample Audio 3".to_string(),
             title: "Sample Title 3".to_string(),
@@ -39,7 +39,7 @@ fn create_sample_cards() -> Vec<Card> {
         Card {
             id: 3,
             anime: "Sample Anime 1".to_string(),
-            number: "OP".to_string(),
+            numbering: "OP".to_string(),
             image: "Sample Visual 4".to_string(),
             audio: "Sample Audio 4".to_string(),
             title: "Sample Title 1".to_string(),

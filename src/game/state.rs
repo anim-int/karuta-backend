@@ -93,7 +93,7 @@ impl GameState {
             let result = match self.config.duplicate_policy {
                 DuplicatePolicy::MatchAnime => card.anime == card_guess.anime,
                 DuplicatePolicy::MatchMusic => {
-                    card.anime == card_guess.anime && card.number == card_guess.number
+                    card.anime == card_guess.anime && card.numbering == card_guess.numbering
                 }
                 DuplicatePolicy::MatchCard => card == &card_guess,
             };

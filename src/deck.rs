@@ -3,82 +3,13 @@ use serde;
 
 use rocket::{response::Redirect, serde::json::Json, State};
 use rocket_okapi::openapi;
-use std::{path::Path, sync::Arc};
+use std::sync::Arc;
 
-#[derive(Debug, Clone)]
-pub enum DeckSource {
-    GitHub { user: String, repo: String },
-    GitLab { user: String, repo: String },
-    Sourcehut { user: String, repo: String },
-}
+use crate::git_repos::GitSource;
+
+pub type DeckSource = GitSource;
 
 impl DeckSource {
-    pub fn parse_url(url: &str) -> Option<DeckSource> {
-        if url.starts_with("https://github.com/") {
-            let parts: Vec<&str> = url.split('/').collect();
-            Some(DeckSource::GitHub {
-                user: parts[3].to_string(),
-                repo: parts[4].trim_end_matches(".git").to_string(),
-            })
-        } else if url.starts_with("https://gitlab.com/") {
-            let parts: Vec<&str> = url.split('/').collect();
-            Some(DeckSource::GitLab {
-                user: parts[3].to_string(),
-                repo: parts[4].trim_end_matches(".git").to_string(),
-            })
-        } else if url.starts_with("https://git.sr.ht/") {
-            let parts: Vec<&str> = url.split('/').collect();
-            Some(DeckSource::Sourcehut {
-                user: parts[3].to_string(),
-                repo: parts[4].to_string(),
-            })
-        } else {
-            None
-        }
-    }
-
-    pub fn from_gitmodules<P>(directory: P) -> Vec<Self>
-    where
-        P: AsRef<Path>,
-    {
-        let gitmodules = std::fs::read_to_string(directory.as_ref().join(".gitmodules")).unwrap();
-        gitmodules
-            .lines()
-            .filter(|line| line.starts_with("\turl"))
-            .map(|line| Self::parse_url(line.trim_start_matches("\turl = ")).unwrap())
-            .collect()
-    }
-
-    fn get_file_url<S>(&self, path: S) -> String
-    where
-        S: ToString,
-    {
-        match self {
-            DeckSource::Sourcehut { user, repo } => {
-                format!(
-                    "https://git.sr.ht/{}/{}/blob/main/{}",
-                    user,
-                    repo,
-                    path.to_string()
-                )
-            }
-            DeckSource::GitLab { user, repo } => {
-                format!(
-                    "https://gitlab.com/{}/{}/raw/main/{}",
-                    user,
-                    repo,
-                    path.to_string()
-                )
-            }
-            DeckSource::GitHub { user, repo } => format!(
-                "https://raw.githubusercontent.com/{}/{}/refs/heads/main/{}",
-                user,
-                repo,
-                path.to_string()
-            ),
-        }
-    }
-
     pub fn get_deck_json_url(&self) -> String {
         self.get_file_url("deck.json")
     }
@@ -110,7 +41,7 @@ pub struct Deck {
 pub struct Card {
     pub id: u32,
     pub anime: String,
-    pub number: String,
+    pub numbering: String,
     pub title: String,
     pub authors: String,
     pub image: String,

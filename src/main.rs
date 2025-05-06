@@ -2,14 +2,18 @@
 extern crate rocket;
 
 mod categories;
+mod config;
 mod cors;
 mod deck;
 mod game;
+mod git_repos;
 mod theme;
 
 use categories::*;
+use config::*;
 use deck::*;
 use game::*;
+use git_repos::GitSource;
 use index::GameIndex;
 use theme::*;
 
@@ -31,7 +35,28 @@ const DEFAULT_CONFIG: GameConfig = GameConfig {
 
 #[launch]
 fn rocket() -> _ {
-    let deck_source_index = DeckSource::from_gitmodules("decks");
+    let global_config = load_global_config();
+    let deck_indexes_source_index = global_config
+        .sources
+        .iter()
+        .map(|source| GitSource::parse_url(source).unwrap())
+        .map(|source| {
+            source.clone_to_local(Some("decks"));
+            source
+        })
+        .collect::<Vec<GitSource>>();
+    let deck_source_index = deck_indexes_source_index
+        .iter()
+        .map(|source| {
+            let (user, repo) = match source {
+                GitSource::GitHub { user, repo } => (user, repo),
+                GitSource::GitLab { user, repo } => (user, repo),
+                GitSource::Sourcehut { user, repo } => (user, repo),
+            };
+            DeckSource::from_gitmodules(format!("decks/{}_{}", user, repo)).into_iter()
+        })
+        .flatten()
+        .collect::<Vec<DeckSource>>();
     let decks = deck_source_index
         .iter()
         .map(|source| {
@@ -181,12 +206,10 @@ mod test {
             .collect::<Vec<Deck>>();
 
         for deck in decks {
-            for card in deck.cards {
-                let response = client
-                    .get(uri!(super::get_cover(deck.name.clone())))
-                    .dispatch();
-                assert_eq!(response.status(), Status { code: 302 });
-            }
+            let response = client
+                .get(uri!(super::get_cover(deck.name.clone())))
+                .dispatch();
+            assert_eq!(response.status(), Status { code: 302 });
         }
     }
 

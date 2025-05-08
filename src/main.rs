@@ -58,6 +58,8 @@ fn rocket() -> _ {
             DeckSource::from_gitmodules(format!("decks/{}_{}", user, repo)).into_iter()
         })
         .flatten()
+        .collect::<std::collections::HashSet<DeckSource>>() // Remove duplicates
+        .into_iter()
         .collect::<Vec<DeckSource>>();
     let decks = deck_source_index
         .iter()

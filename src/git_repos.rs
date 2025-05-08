@@ -6,7 +6,7 @@ use std::path::Path;
 /// - GitHub
 /// - GitLab
 /// - Sourcehut
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum GitSource {
     GitHub { user: String, repo: String },
     GitLab { user: String, repo: String },

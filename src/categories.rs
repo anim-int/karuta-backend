@@ -9,7 +9,7 @@ pub struct Category {
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
-pub struct CategoryJSON {
+pub struct CategoriesJSON {
     pub categories: Vec<Category>,
     pub types: Vec<String>,
 }
@@ -17,21 +17,21 @@ pub struct CategoryJSON {
 /// Returns a list of all the known categories in json format
 #[openapi(tag = "Categories")]
 #[get("/categories")]
-pub async fn get_categories(categories: &State<Arc<CategoryJSON>>) -> Option<String> {
+pub async fn get_categories(categories: &State<Arc<CategoriesJSON>>) -> Option<String> {
     serde_json::to_string(&categories.categories).ok()
 }
 
 /// Returns a list of all the known types in json format
 #[openapi(tag = "Categories")]
 #[get("/types")]
-pub async fn get_types(categories: &State<Arc<CategoryJSON>>) -> Option<String> {
+pub async fn get_types(categories: &State<Arc<CategoriesJSON>>) -> Option<String> {
     serde_json::to_string(&categories.types).ok()
 }
 
 /// Returns a list of all the known categories and types in json format
 #[openapi(tag = "Categories")]
 #[get("/categories_and_types")]
-pub async fn get_categories_and_types(categories: &State<Arc<CategoryJSON>>) -> Option<String> {
+pub async fn get_categories_and_types(categories: &State<Arc<CategoriesJSON>>) -> Option<String> {
     serde_json::to_string(categories.inner().as_ref()).ok()
 }
 
@@ -39,14 +39,14 @@ pub async fn get_categories_and_types(categories: &State<Arc<CategoryJSON>>) -> 
 #[get("/category/icon/<name>")]
 pub async fn get_category_icon(
     name: &str,
-    categories: &State<Arc<CategoryJSON>>,
+    categories: &State<Arc<CategoriesJSON>>,
 ) -> Option<NamedFile> {
     let icon_path = &categories
         .categories
         .iter()
         .find(|category| category.name == name)?
         .icon;
-    NamedFile::open(Path::new(&format!("decks/Categories/{icon_path}")))
+    NamedFile::open(Path::new(&format!("decks/Categories/{}", icon_path)))
         .await
         .ok()
 }

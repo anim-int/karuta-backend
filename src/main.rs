@@ -42,7 +42,7 @@ fn rocket() -> _ {
         .iter()
         .map(|source| GitSource::parse_url(source).unwrap())
         .map(|source| {
-            source.clone_to_local(Some("decks"));
+            source.clone_to_local(Some(&global_config.decks_directory));
             source
         })
         .collect::<Vec<GitSource>>();
@@ -55,7 +55,11 @@ fn rocket() -> _ {
                 GitSource::GitLab { user, repo } => (user, repo),
                 GitSource::Sourcehut { user, repo } => (user, repo),
             };
-            DeckSource::from_gitmodules(format!("decks/{}_{}", user, repo)).into_iter()
+            DeckSource::from_gitmodules(format!(
+                "{}/{}_{}",
+                global_config.decks_directory, user, repo
+            ))
+            .into_iter()
         })
         .flatten()
         .collect::<std::collections::HashSet<DeckSource>>() // Remove duplicates
@@ -68,10 +72,15 @@ fn rocket() -> _ {
             (source.clone(), response.json::<Deck>().unwrap())
         })
         .collect::<Vec<(DeckSource, Deck)>>();
-    let categories: CategoryJSON = CategoryJSON {
-        categories: vec![],
-        types: vec![],
-    };
+
+    let categories: CategoriesJSON = serde_json::from_reader(
+        std::fs::File::open(format!(
+            "{}/categories.json",
+            global_config.categories_directory
+        ))
+        .unwrap(),
+    )
+    .unwrap();
 
     let game_index = GameIndex::new(DEFAULT_CONFIG);
 
@@ -120,10 +129,10 @@ mod test {
     use rocket::http::Status;
     use rocket::local::blocking::Client;
 
-    use super::{CategoryJSON, Deck};
+    use super::{load_global_config, CategoriesJSON, Deck};
 
     #[test]
-    fn get_decks() {
+    pub fn get_decks() {
         let client = Client::tracked(rocket()).expect("valid rocket instance");
         let response = client.get(uri!(super::deck_names)).dispatch();
         assert_eq!(response.status(), Status::Ok);
@@ -215,13 +224,17 @@ mod test {
         }
     }
 
-    #[ignore]
     #[test]
     fn category_files_integrity() {
+        let global_config = load_global_config();
         let client = Client::tracked(rocket()).expect("valid rocket instance");
 
-        let categories: CategoryJSON = serde_json::from_reader(
-            std::fs::File::open("decks/Categories/Categories.json").unwrap(),
+        let categories: CategoriesJSON = serde_json::from_reader(
+            std::fs::File::open(format!(
+                "{}/categories.json",
+                global_config.categories_directory
+            ))
+            .unwrap(),
         )
         .unwrap();
 

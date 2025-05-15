@@ -1,7 +1,9 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
+
+const MAX_CLONE_RETRIES: u32 = 10;
 
 /// Container struct handling content stored on a git forge
-/// 
+///
 /// This currently supports :
 /// - GitHub
 /// - GitLab
@@ -53,7 +55,7 @@ impl GitSource {
     }
 
     /// Returns the url to a file given its path in the repo
-    /// 
+    ///
     /// This uses the raw file links from the forges
     pub fn get_file_url<S>(&self, path: S) -> String
     where
@@ -87,7 +89,7 @@ impl GitSource {
     }
 
     /// Clones the repo locally in an optionally given directory, defaults to current working directory
-    /// 
+    ///
     /// The repo is cloned to `directory/[user]_[repo]`
     pub fn clone_to_local<P>(&self, directory: Option<P>)
     where
@@ -100,29 +102,46 @@ impl GitSource {
         std::fs::create_dir_all(&directory).expect("Failed to create directory");
         match self {
             GitSource::GitHub { user, repo } => {
-                std::process::Command::new("git")
-                    .arg("clone")
-                    .arg(format!("https://github.com/{}/{}.git", user, repo))
-                    .arg(format!("{}/{}_{}", directory.to_str().unwrap(), user, repo))
-                    .output()
-                    .expect("Failed to clone GitHub repository");
+                clone_repo(
+                    format!("https://github.com/{}/{}.git", user, repo),
+                    directory.join(format!("{}_{}", user, repo))
+                )
             }
             GitSource::GitLab { user, repo } => {
-                std::process::Command::new("git")
-                    .arg("clone")
-                    .arg(format!("https://gitlab.com/{}/{}.git", user, repo))
-                    .arg(format!("{}/{}_{}", directory.to_str().unwrap(), user, repo))
-                    .output()
-                    .expect("Failed to clone GitLab repository");
+                clone_repo(
+                    format!("https://gitlab.com/{}/{}.git", user, repo),
+                    directory.join(format!("{}_{}", user, repo))
+                )
             }
             GitSource::Sourcehut { user, repo } => {
-                std::process::Command::new("git")
-                    .arg("clone")
-                    .arg(format!("https://git.sr.ht/{}/{}", user, repo))
-                    .arg(format!("{}/{}_{}", directory.to_str().unwrap(), user, repo))
-                    .output()
-                    .expect("Failed to clone SourceHut repository");
+                clone_repo(
+                    format!("https://git.sr.ht/{}/{}", user, repo),
+                    directory.join(format!("{}_{}", user, repo))
+                )
             }
         }
+    }
+}
+
+fn clone_repo(source: String, target: PathBuf) {
+    if target.exists() {
+        // Directory already exists, skip clone
+        return;
+    }
+    std::process::Command::new("git")
+        .arg("clone")
+        .arg(source)
+        .arg(&target)
+        .output()
+        .expect("Failed to clone repository");
+
+    let mut retries = 0;
+    while !target.join(".gitmodules").exists() && retries < MAX_CLONE_RETRIES {
+        println!("Waiting for clone to finish...");
+        std::thread::sleep(std::time::Duration::from_secs(1)); // Wait for the clone to finish
+        retries += 1;
+    }
+    if retries == MAX_CLONE_RETRIES {
+        panic!("Failed to clone repository after {} retries", MAX_CLONE_RETRIES);
     }
 }

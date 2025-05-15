@@ -2,7 +2,7 @@ use rocket::http::Header;
 use rocket::{Request, Response};
 use rocket::fairing::{Fairing, Info, Kind};
 
-// Useful for Cros-Origin Ressource Sharing
+// Useful for Cross-Origin Ressource Sharing
 
 pub struct CORS;
 

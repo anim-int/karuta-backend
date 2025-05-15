@@ -5,7 +5,9 @@ static CONFIG_FILE_NAME: &str = "karuta.toml";
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct GlobalConfig {
+    pub decks_directory: String,
     pub sources: Vec<String>,
+    pub categories_directory: String,
 }
 
 pub fn load_global_config() -> GlobalConfig {

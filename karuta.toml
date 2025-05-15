@@ -1,3 +1,6 @@
+decks_directory = "decks"
 sources = [
     "https://github.com/anim-int/karuta-decks.git"
 ]
+
+categories_directory = "categories"

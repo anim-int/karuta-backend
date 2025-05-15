@@ -1,4 +1,16 @@
 {
-    "categories": [],
-    "types": []
+    "categories": [
+        {
+            "name": "KARUTA",
+            "icon": "karuta.png"
+        },
+        {
+            "name": "KARUTO",
+            "icon": "karuto.png"
+        }
+    ],
+    "types": [
+        "CASUAL",
+        "NORMAL"
+    ]
 }

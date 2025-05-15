@@ -1,6 +1,7 @@
 pub mod index;
 pub mod state;
 pub mod test;
+pub mod websocket;
 
 use serde;
 
@@ -11,6 +12,7 @@ use rocket::{
     State,
 };
 use rocket_okapi::{openapi, JsonSchema};
+
 use state::{CardGuessResult, GameContinuation};
 
 use std::sync::{Arc, RwLock};

@@ -26,15 +26,20 @@ pub struct GameState {
     boards: Vec<Vec<Card>>,
     current_card_playing: Option<(usize, usize)>,
     game_continuation: GameContinuation,
+    sender: crossbeam_channel::Sender<GameContinuation>,
+    receiver: crossbeam_channel::Receiver<GameContinuation>,
 }
 
 impl GameState {
     pub fn new(config: GameConfig, decks: Vec<Vec<Card>>) -> Self {
+        let (sender, receiver) = crossbeam_channel::unbounded();
         GameState {
             config,
             boards: decks,
             current_card_playing: None,
             game_continuation: GameContinuation::Continue,
+            sender,
+            receiver,
         }
     }
 
@@ -65,6 +70,11 @@ impl GameState {
 
     pub fn has_game_ended(&self) -> bool {
         self.game_continuation == GameContinuation::End
+    }
+
+    fn set_game_continuation(&mut self, continuation: GameContinuation) {
+        self.sender.send(continuation).unwrap();
+        self.game_continuation = continuation;
     }
 
     /// Choose a card to become the current card being searched.
@@ -109,7 +119,7 @@ impl GameState {
         let (player_index, card_index) = self.current_card_playing.unwrap();
         self.boards[player_index].remove(card_index);
         self.current_card_playing = None;
-        self.game_continuation = if self.boards[player_index].is_empty() {
+        let continuation = if self.boards[player_index].is_empty() {
             self.boards.remove(player_index);
             if self.config.has_ffa {
                 for board in &self.boards {
@@ -124,6 +134,7 @@ impl GameState {
         } else {
             GameContinuation::Continue
         };
+        self.set_game_continuation(continuation);
         Ok(self.game_continuation)
     }
 }

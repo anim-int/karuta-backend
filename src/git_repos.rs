@@ -1,5 +1,7 @@
 use std::path::{Path, PathBuf};
 
+use git2::{Direction, Remote};
+
 const MAX_CLONE_RETRIES: u32 = 10;
 
 /// Container struct handling content stored on a git forge
@@ -10,31 +12,35 @@ const MAX_CLONE_RETRIES: u32 = 10;
 /// - Sourcehut
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum GitSource {
-    GitHub { user: String, repo: String },
-    GitLab { user: String, repo: String },
-    Sourcehut { user: String, repo: String },
+    GitHub { user: String, repo: String, default_branch: String },
+    GitLab { user: String, repo: String, default_branch: String },
 }
 
 impl GitSource {
     /// Creates a new GitSource from a given url
     pub fn parse_url(url: &str) -> Option<GitSource> {
+        println!("Connecting to {url}");
+        let mut git_remote = Remote::create_detached(url).ok()?;
+        git_remote.connect(Direction::Fetch).ok()?;
+        let default_branch = git_remote.default_branch().ok()?.as_str()?.into();
+        println!("Got branch {default_branch}");
         if url.starts_with("https://github.com/") {
             let parts: Vec<&str> = url.split('/').collect();
+            let user = parts[3].to_string();
+            let repo = parts[4].trim_end_matches(".git").to_string();
             Some(GitSource::GitHub {
-                user: parts[3].to_string(),
-                repo: parts[4].trim_end_matches(".git").to_string(),
+                user,
+                repo,
+                default_branch
             })
         } else if url.starts_with("https://gitlab.com/") {
             let parts: Vec<&str> = url.split('/').collect();
+            let user = parts[3].to_string();
+            let repo = parts[4].trim_end_matches(".git").to_string();
             Some(GitSource::GitLab {
-                user: parts[3].to_string(),
-                repo: parts[4].trim_end_matches(".git").to_string(),
-            })
-        } else if url.starts_with("https://git.sr.ht/") {
-            let parts: Vec<&str> = url.split('/').collect();
-            Some(GitSource::Sourcehut {
-                user: parts[3].to_string(),
-                repo: parts[4].to_string(),
+                user,
+                repo,
+                default_branch
             })
         } else {
             None
@@ -62,26 +68,20 @@ impl GitSource {
         S: ToString,
     {
         match self {
-            GitSource::Sourcehut { user, repo } => {
+            GitSource::GitLab { user, repo, default_branch } => {
                 format!(
-                    "https://git.sr.ht/{}/{}/blob/main/{}",
+                    "https://gitlab.com/{}/{}/raw/{}/{}",
                     user,
                     repo,
+                    default_branch,
                     path.to_string()
                 )
             }
-            GitSource::GitLab { user, repo } => {
-                format!(
-                    "https://gitlab.com/{}/{}/raw/main/{}",
-                    user,
-                    repo,
-                    path.to_string()
-                )
-            }
-            GitSource::GitHub { user, repo } => format!(
-                "https://raw.githubusercontent.com/{}/{}/refs/heads/main/{}",
+            GitSource::GitHub { user, repo, default_branch } => format!(
+                "https://raw.githubusercontent.com/{}/{}/{}/{}",
                 user,
                 repo,
+                default_branch,
                 path.to_string()
             ),
         }
@@ -101,21 +101,15 @@ impl GitSource {
         };
         std::fs::create_dir_all(&directory).expect("Failed to create directory");
         match self {
-            GitSource::GitHub { user, repo } => {
+            GitSource::GitHub { user, repo, .. } => {
                 clone_repo(
                     format!("https://github.com/{}/{}.git", user, repo),
                     directory.join(format!("{}_{}", user, repo))
                 )
             }
-            GitSource::GitLab { user, repo } => {
+            GitSource::GitLab { user, repo, .. } => {
                 clone_repo(
                     format!("https://gitlab.com/{}/{}.git", user, repo),
-                    directory.join(format!("{}_{}", user, repo))
-                )
-            }
-            GitSource::Sourcehut { user, repo } => {
-                clone_repo(
-                    format!("https://git.sr.ht/{}/{}", user, repo),
                     directory.join(format!("{}_{}", user, repo))
                 )
             }
